@@ -1,5 +1,4 @@
 #!/opt/chefdk/embedded/bin/ruby
-t1 = Time.now
 require 'chef'
 require 'concurrent'
 require 'logger'
@@ -14,8 +13,11 @@ module Load
        :node_rereg => 0,
        :pref_max_threads => 50,
        :knife_bin => "/opt/chefdk/bin/knife",
-       :knife_config => "/etc/chef/knife.rb"
+       :knife_config => "/etc/chef/knife.rb",
+       :log_level => Logger::INFO,
+       :chef_log_level => Logger::WARN
      }
+  @logger.level = @config[:log_level]
   if File.exists? "config.rb" 
     puts "Loading config file"
     begin
@@ -97,24 +99,23 @@ module Load
      `#{config[:knife_bin]} client bulk delete #{reg_ex} --yes`
      `#{config[:knife_bin]} node bulk delete #{reg_ex} --yes`
   end
-   
+  def self.config_chef_logging
+    logger = Logger.new(STDOUT)
+    logger.level = config[:chef_log_level]
+    Chef::Log.loggers << logger
+  end 
  end
  
  
 
-#Chef::Config[:log_level] = :info
-#stdout_logger = MonoLogger.new(STDOUT)
-#stdout_logger.formatter = Chef::Log.logger.formatter
-#Chef::Log.loggers <<  stdout_logger
- 
-
-#Clean up clients and nodes first
 node_prefix = Load::config[:node_prefix]
 Load::clean_up("#{node_prefix}.*")
 Load::prime_ohai()
-
+Load::config_chef_logging
 
 Load::log.info "starting concurrent ops"
+#Stamp time
+t1 = Time.now
 
 pool = Concurrent::ThreadPoolExecutor.new(
 :min_threads => [2, Concurrent.processor_count].max,
