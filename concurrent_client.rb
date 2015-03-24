@@ -30,14 +30,23 @@ module Load
      puts "Using defaults"
    end
    Chef::Config.from_file(@config[:knife_config])
-   def self.config
+  @pool = Concurrent::ThreadPoolExecutor.new(
+    :min_threads => [2, Concurrent.processor_count].max,
+    :max_threads => [2, Concurrent.processor_count,@config[:pref_max_threads]].max,
+    :max_queue   => 0,
+    :fallback_policy => :caller_runs
+  ) 
+  #TODO consider attr_reader
+  def self.config
      @config
    end
    def self.log
     @logger
    end
-   
-   def self.prime_ohai
+   def self.pool
+    @pool
+  end
+  def self.prime_ohai
      log.info "config: #{config}"
      chef_client = Chef::Client.new()
      chef_client.run_ohai
@@ -68,8 +77,8 @@ module Load
    def self.client_register(name)
      reg = Chef::ApiClient::Registration.new(name,name)
      reg.create_or_update
-   end   
-
+   end 
+   
    #TODO: deep deps loading
    def self.download_cb(name,version,rest=nil)
      if rest.nil? 
@@ -104,84 +113,69 @@ module Load
     logger.level = config[:chef_log_level]
     Chef::Log.loggers << logger
   end 
- end
- 
- 
-
-node_prefix = Load::config[:node_prefix]
-Load::clean_up("#{node_prefix}.*")
-Load::prime_ohai()
-Load::config_chef_logging
-
-Load::log.info "starting concurrent ops"
-#Stamp time
-t1 = Time.now
-
-pool = Concurrent::ThreadPoolExecutor.new(
-:min_threads => [2, Concurrent.processor_count].max,
-:max_threads => [2, Concurrent.processor_count,Load::config[:pref_max_threads]].max,
-:max_queue   => 0,
-:fallback_policy => :caller_runs
-)
-
-
-
-futures = []
-Load::log.info "performing #{Load::config[:new_node_reg]} registrations"
-(1..Load::config[:new_node_reg]).each do |i|
-  future = Concurrent::Future.new(:executor => pool) {
-    
-    begin
-      t_reg = Time.now 
-      Load::log.info "Starting registration #{node_prefix}#{i}"
-      
-      #Load::load_node "#{node_prefix}#{i}" 
-      Load::client_register "#{node_prefix}#{i}"
-      Load::log.info "Completed registration"
-      #download cookbooks
-      Load::download_cb("iems","1.6.3",rest)
   
-      Load::save_node "#{node_prefix}#{i}"
-      Load::log.info "Node saved #{node_prefix}#{i} t=#{Time.now - t_reg}"
-    rescue Exception => e
-      Load::log.error "unable to complete registration #{e.backtrace}"
+  class Runner
+     
+    def initialize
+      #Load::clean_up("#{node_prefix}.*")
+      Load::prime_ohai()
+      Load::config_chef_logging
+      @futures = []
     end
-  }
-  future.execute
-  #Not sure we should add them to array here 
-  #could cause memory overflow
-  futures << future
-end
-(1..Load::config[:node_rereg]).each do |i|
-  future = Concurrent::Future.new(:executor => pool) {
-
-    begin
-      t_reg = Time.now
-
-      Load::save_node "#{node_prefix}#{i}"
-      Load::log.info "Node saved #{node_prefix}#{i} t=#{Time.now - t_reg}"
-    rescue Exception => e
-      Load::log.error "unable to complete registration #{e.backtrace}"
+    def clean_up(name)
+      Load::clean_up(name)
     end
-  }
-  future.execute
-  #Not sure we should add them to array here
-  #could cause memory overflow
-  futures << future
+    def run_times(n)
+      Load::log.info "Starting #{Load::pool}"
+      t1 = Time.now
+      (1..n).each do |i|
+       future = Concurrent::Future.new(:executor => Load::pool) {
+          tb = Time.now
+          begin 
+            task(TaskContext.new(i))
+          rescue Exception => e
+            Load::log.error e.backtrace
+          end
+          ta = Time.now
+          Load::log.info "Task latency: #{ta - tb}"
+       }
+       future.execute
+      end
+      Load::log.info "Completed n times in #{Time.now - t1}"
+    end
+    def run_while(&block)
+      
+    end
+    
+    def shutdown
+      Load::pool.shutdown
+      # now wait for all work to complete, wait as long as it takes
+      Load::pool.wait_for_termination
+
+    end
+    def task(context)
+      puts "code your task"
+    end
+  end
+  class TaskContext
+    attr_reader :cur_num
+    def initialize(cur_num)
+      @cur_num = cur_num
+    end
+  end
+  class RunnerStat
+     
+     def initialize
+        @times = Concurrent::AtomicFixnum
+     end
+     
+     def increment
+     
+     end
+     
+     def times
+     end
+  end
 end
-#wait for all cookbooks to finish
-#    futures.each do |future|
-#      future.value
-#    end
-
-# tell the pool to shutdown in an orderly fashion, allowing in progress work to complete
-pool.shutdown
-# now wait for all work to complete, wait as long as it takes
-pool.wait_for_termination
-
-delta = Time.now - t1
-
-Load::log.info "Final delta= #{delta}"
-
-
+ 
 
