@@ -17,7 +17,7 @@ module Load
        :log_level => Logger::INFO,
        :chef_log_level => Logger::WARN
      }
-  @logger.level = @config[:log_level]
+  
   if File.exists? "config.rb" 
     puts "Loading config file"
     begin
@@ -29,6 +29,7 @@ module Load
    else
      puts "Using defaults"
    end
+  @logger.level = @config[:log_level]
    Chef::Config.from_file(@config[:knife_config])
   @pool = Concurrent::ThreadPoolExecutor.new(
     :min_threads => [2, Concurrent.processor_count].max,
@@ -116,35 +117,65 @@ module Load
   
   class Runner
      
+    attr_reader :stats
     def initialize
       #Load::clean_up("#{node_prefix}.*")
       Load::prime_ohai()
       Load::config_chef_logging
       @futures = []
+      @stats = RunnerStat.new
     end
     def clean_up(name)
       Load::clean_up(name)
     end
     def run_times(n)
-      Load::log.info "Starting #{Load::pool}"
+      Load::log.debug "Starting #{Load::pool}"
       t1 = Time.now
       (1..n).each do |i|
        future = Concurrent::Future.new(:executor => Load::pool) {
-          tb = Time.now
+          
+         tc = TaskContext.new(i,Time.now)
           begin 
-            task(TaskContext.new(i))
+            Load::log.debug "Starting task #{tc}"
+            task(tc)
           rescue Exception => e
             Load::log.error e.backtrace
           end
-          ta = Time.now
-          Load::log.info "Task latency: #{ta - tb}"
+          @stats.complete_task(tc)
+          Load::log.debug "Completed task #{tc}"
+          
        }
        future.execute
       end
-      Load::log.info "Completed n times in #{Time.now - t1}"
-    end
-    def run_while(&block)
       
+    end
+    
+    #Use this in conjuction with run_while_done
+    def run_while
+      Load::log.debug "Starting #{Load::pool}"
+      t1 = Time.now
+      i = 0
+      while !run_while_done do
+         future = Concurrent::Future.new(:executor => Load::pool) {
+            
+           tc = TaskContext.new(i,Time.now)
+           begin 
+             Load::log.debug "Starting task #{tc}"
+             task(tc)
+           rescue Exception => e
+             Load::log.error e.backtrace
+           end
+           @stats.complete_task(tc)
+           Load::log.debug "Completed task #{tc}"
+            
+         }
+         future.execute
+      
+      end
+            
+    end
+    def run_while_done
+      raise "You haven't implemented run_while_done"
     end
     
     def shutdown
@@ -159,21 +190,51 @@ module Load
   end
   class TaskContext
     attr_reader :cur_num
-    def initialize(cur_num)
+    attr_reader :start_t
+    attr_reader :end_t
+    def initialize(cur_num,t)
       @cur_num = cur_num
+      @start_t = t
     end
+    def to_s
+      "{cur_num=#{@cur_num},start_t=#{@start_t},end_t=#{@end_t}}"
+    end
+    #these should be private methods
+    def set_end(t)
+      @end_t = t
+    end
+    def latency
+       (@end_t - @start_t).to_f
+    end
+   
   end
   class RunnerStat
      
      def initialize
-        @times = Concurrent::AtomicFixnum
+        #@times = Concurrent::AtomicFixnum
+        #list of TaskContexts
+        @tasks = []
      end
      
-     def increment
-     
+     def complete_task(tc)
+      tc.set_end(Time.now)
+      add_task(tc)
      end
      
-     def times
+     def add_task(tc)
+       @tasks << tc
+     end
+     
+     def avg_latency
+       total_time/@tasks.length
+     end
+     
+     def total_time
+       t = 0.to_f
+       @tasks.each do |task|
+         t += task.latency
+       end
+       t
      end
   end
 end

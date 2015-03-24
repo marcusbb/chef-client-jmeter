@@ -7,7 +7,6 @@ class NewNodeRegistration < Load::Runner
   end
   def task(ctx)
     
-    
     Load::save_node "#{node_prefix}#{ctx.cur_num}"
     
   end
@@ -15,5 +14,6 @@ class NewNodeRegistration < Load::Runner
 end
 
 c = NewNodeRegistration.new
-c.run_times(100)
+c.run_times(10)
 c.shutdown
+Load.log().info "Total time: #{c.stats.total_time}, Avg Latency #{c.stats.avg_latency}"
