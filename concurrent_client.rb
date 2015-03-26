@@ -159,13 +159,15 @@ module Load
     def run_while
       Load::log.debug "Starting #{Load::pool}"
       t1 = Time.now
-      i = 0
+      i = 1
+      Load::log.debug "done? #{run_while_done}"
       while !run_while_done do
          future = Concurrent::Future.new(:executor => Load::pool) {
             
            tc = TaskContext.new(i,Time.now)
            begin 
              Load::log.debug "Starting task #{tc}"
+             i += 1
              task(tc)
            rescue Exception => e
              Load::log.error e.backtrace
