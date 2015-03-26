@@ -158,7 +158,8 @@ module Load
       end
       
     end
-    
+
+    #DO NOT USE YET!!    
     #Use this in conjuction with run_while_done
     def run_while
       Load::log.debug "Starting #{Load::pool}"
