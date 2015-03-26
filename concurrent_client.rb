@@ -13,6 +13,7 @@ module Load
        :node_rereg => 0,
        :pref_max_threads => Concurrent.processor_count,
        :pref_min_threads => 1,
+       :break_on_exception => false,
        :knife_bin => "/opt/chefdk/bin/knife",
        :knife_config => "/etc/chef/knife.rb",
        :log_level => Logger::INFO,
@@ -145,7 +146,9 @@ module Load
             Load::log.debug "Starting task #{tc}"
             task(tc)
           rescue Exception => e
-            Load::log.error e.backtrace
+            @stats.complete_task(tc,e)
+            Load::log.warn e.backtrace
+            break unless Load::config[:break_on_exception]
           end
           @stats.complete_task(tc)
           Load::log.debug "Completed task #{tc}"
@@ -200,6 +203,7 @@ module Load
     attr_reader :cur_num
     attr_reader :start_t
     attr_reader :end_t
+    attr_reader :ex
     def initialize(cur_num,t)
       @cur_num = cur_num
       @start_t = t
@@ -214,6 +218,9 @@ module Load
     def latency
        (@end_t - @start_t).to_f
     end
+    def ex(e)
+      @ex = e
+    end
    
   end
   class RunnerStat
@@ -225,8 +232,9 @@ module Load
         @start_t = Time.now
      end
      
-     def complete_task(tc)
+     def complete_task(tc,e=nil)
       tc.set_end(Time.now)
+      tc.ex(e)
       add_task(tc)
      end
      
