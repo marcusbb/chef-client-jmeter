@@ -214,6 +214,7 @@ module Load
         #@times = Concurrent::AtomicFixnum
         #list of TaskContexts
         @tasks = []
+        @start_t = Time.now
      end
      
      def complete_task(tc)
@@ -229,6 +230,10 @@ module Load
        total_time/@tasks.length
      end
      
+     def throughput
+       delta = Time.now - @start_t
+       @tasks.length/delta
+     end
      def total_time
        t = 0.to_f
        @tasks.each do |task|

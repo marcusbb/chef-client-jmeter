@@ -16,4 +16,4 @@ end
 c = NewNodeRegistration.new
 c.run_times(10)
 c.shutdown
-Load.log().info "Total time: #{c.stats.total_time}, Avg Latency #{c.stats.avg_latency}"
+Load.log().info "Total time (sec): #{c.stats.total_time}, Avg Latency (sec) #{c.stats.avg_latency}, Throughput(task/sec): #{c.stats.throughput}"
