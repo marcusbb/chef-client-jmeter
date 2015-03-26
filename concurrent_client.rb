@@ -11,7 +11,8 @@ module Load
        :node_prefix => "load_test_",
        :new_node_reg => 0,
        :node_rereg => 0,
-       :pref_max_threads => 50,
+       :pref_max_threads => Concurrent.processor_count,
+       :pref_min_threads => 1,
        :knife_bin => "/opt/chefdk/bin/knife",
        :knife_config => "/etc/chef/knife.rb",
        :log_level => Logger::INFO,
@@ -32,8 +33,8 @@ module Load
   @logger.level = @config[:log_level]
    Chef::Config.from_file(@config[:knife_config])
   @pool = Concurrent::ThreadPoolExecutor.new(
-    :min_threads => [2, Concurrent.processor_count].max,
-    :max_threads => [2, Concurrent.processor_count,@config[:pref_max_threads]].max,
+    :min_threads => @config[:pref_min_threads],
+    :max_threads => @config[:pref_max_threads],
     :max_queue   => 0,
     :fallback_policy => :caller_runs
   ) 
