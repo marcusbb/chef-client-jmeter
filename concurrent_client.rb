@@ -69,7 +69,7 @@ module Load
      n_clone.save
    end
    
-   #this causes quite a large 
+   #this causes quite a large lag. TBD
    def self.load_node(name)
      Chef::Node.load(name)
    end
