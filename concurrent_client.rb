@@ -80,6 +80,11 @@ module Load
      reg.create_or_update
    end 
    
+   def self.load_env(name)
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     rest.get_rest("/environments/#{name}")
+   end
+   
    #TODO: deep deps loading
    def self.download_cb(name,version,rest=nil)
      if rest.nil? 
