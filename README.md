@@ -9,6 +9,10 @@ Once you build it, copy it to your $JMETER_HOME/lib/ext directory
 If you select Java Sampler, it should be availabe, named 
 com.bb.mandolin.jmeter.ChefClientSampler
 
+You must modify the run_lock.rb that comes with Chef to remove the system level process
+lock of chef-client.  I've included my hacks so you can copy it to your appropriate install
+of chef.
+
 ###Ruby
 The above JMeter plugin creates a new chef client process for each sample collected
 and does not scale well.
