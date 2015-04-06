@@ -13,6 +13,7 @@ module Load
        :node_rereg => 0,
        :pref_max_threads => Concurrent.processor_count,
        :pref_min_threads => 1,
+       :max_queue => 0,
        :break_on_exception => false,
        :knife_bin => "/opt/chefdk/bin/knife",
        :knife_config => "/etc/chef/knife.rb",
@@ -36,7 +37,7 @@ module Load
   @pool = Concurrent::ThreadPoolExecutor.new(
     :min_threads => @config[:pref_min_threads],
     :max_threads => @config[:pref_max_threads],
-    :max_queue   => 0,
+    :max_queue   => @config[:max_queue],
     :fallback_policy => :caller_runs
   ) 
   #TODO consider attr_reader
