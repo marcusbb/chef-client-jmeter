@@ -39,7 +39,9 @@ config.rb - Ability to over-ride default behaviour
 ```
 Any of the above properties can be modified - but must be in the same directory as concurrent_client.rb.
 
-###Basic Load Structure
+Chef logging is separated from Load logging for efficiency and readability
+
+###Basic Load Tests
 ```ruby
 require_relative 'concurrent_client.rb'
 
@@ -80,12 +82,15 @@ s = SleepingLoad.new
 #Run my task this many times
 c.run_times(1024*512)
 
-#The thread pool is global!
+#The thread pool is global! So will contend with other above submitted tasks
 s.run_times(1024)
+
 
 #Wait for all thread to complete and shutdown
 c.shutdown
 
+#Print out stats - Can be done at any point of execution
+Load.log().info "Total time (sec): #{c.stats.total_time}, Avg Latency (sec) #{c.stats.avg_latency}, Throughput(task/sec): #{c.stats.throughput}"
 ```
 
 new_node_registrations.rb - An approximate chef client run.
