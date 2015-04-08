@@ -13,6 +13,8 @@ You must modify the run_lock.rb that comes with Chef to remove the system level 
 lock of chef-client.  I've included my hacks so you can copy it to your appropriate install
 of chef.
 
+Download the jmeter with extension  @ http://orion-cli.rim.net/~Mandolin/jmeter-chef-client.tar.gz
+
 ###Ruby
 The above JMeter plugin creates a new chef client process for each sample collected
 and does not scale well.
