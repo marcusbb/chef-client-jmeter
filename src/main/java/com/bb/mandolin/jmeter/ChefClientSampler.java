@@ -25,14 +25,27 @@ public class ChefClientSampler extends AbstractJavaSamplerClient {
 		// TODO Auto-generated method stub
 		SampleResult testResults = new SampleResult();
 		long l = sc.nextLong();
+		String pem = null; 
+		String nodeName = null;
+		String pid = null;
+		//provided node name?
+		if (context.getParameter("NODE_NAME").isEmpty()) {
+			nodeName = context.getParameter("NODE_PREFIX") + l;
+			pem = "/tmp/chef-client-" + l + ".pem";
+			pid = "/tmp/chef-client-" + l + ".pid";
+		}else {
+			nodeName = context.getParameter("NODE_NAME");
+			pem = "/tmp/"+ nodeName+ ".pem";
+			pid = "/tmp/"+ nodeName + ".pid";
+		}
 		//build the command string
 		String []cmdLine = {"chef-client", 
 				"-S", context.getParameter("CHEF_SERVER_URL"), 
 				"-r", context.getParameter("RECIPE"),
 				"-K", context.getParameter("VALIDATOR_PEM"),
-				"-k", "/tmp/client" + l + ".pem" ,
-				"-N", context.getParameter("NODE_PREFIX") + l,
-				"-P", "/tmp/chef-client-" + l + ".pid"};
+				"-k", pem ,
+				"-N", nodeName,
+				"-P", pid};
 		
 		ProcessBuilder pb = new ProcessBuilder(Arrays.asList(cmdLine));
 		Map<String, String> env = pb.environment();
@@ -85,11 +98,11 @@ public class ChefClientSampler extends AbstractJavaSamplerClient {
 		
 		args.addArgument("Version:","1.0.0");
 		args.addArgument("PATH","/opt/chefdk/bin:/opt/chefdk/embedded/bin");
-		args.addArgument("NODE_PREFIX","jmeter-node-");
 		args.addArgument("CHEF_SERVER_URL","https://10.236.48.44");
 		args.addArgument("RECIPE","recipe[iems_base]");
 		args.addArgument("VALIDATOR_PEM","/home/marcus/ruby-workspace/.chef/chef-validator.pem");
 		args.addArgument("NODE_PREFIX","jmeter-node-");
+		args.addArgument("NODE_NAME","");
 		args.addArgument("SUCCESS_CRITERIA","INFO: Loading cookbooks");
 		
 		return args;
