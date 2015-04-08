@@ -17,7 +17,6 @@
   :chef_log_level => Logger::WARN,
   :log_level => Logger::DEBUG,
   :knife_config => "/home/marcus/ruby-workspace/.chef/knife.rb",
-  :pref_max_threads => 1,
-  :node_rereg => 10
+  :pref_max_threads => 1
 
 }
