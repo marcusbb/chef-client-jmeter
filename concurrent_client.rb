@@ -88,6 +88,21 @@ module Load
      rest.get_rest("/environments/#{name}")
    end
    
+   def self.load_role(name)
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     rest.get_rest("/roles/#{name}")
+   end
+   
+   def self.delete_node(name)
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     rest.delete("/nodes/#{name}")
+   end
+   
+   def self.delete_client(name)
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     rest.delete("/clients/#{name}")
+   end
+   
    #TODO: deep deps loading
    def self.download_cb(name,version,rest=nil)
      if rest.nil? 
@@ -114,8 +129,12 @@ module Load
    end
    def self.clean_up(reg_ex)
      Load::log.warn "Clean Up Starting..."
-     `#{config[:knife_bin]} client bulk delete #{reg_ex} --yes`
-     `#{config[:knife_bin]} node bulk delete #{reg_ex} --yes`
+     #`#{config[:knife_bin]} client bulk delete #{reg_ex} --yes`
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     clients = rest.get_rest("/search/client?q=#{reg_ex}")
+     Load::log().info "Deleting clients #{clients}"
+     
+     #`#{config[:knife_bin]} node bulk delete #{reg_ex} --yes`
   end
   def self.config_chef_logging
     logger = Logger.new(STDOUT)
@@ -258,6 +277,10 @@ module Load
          t += task.latency
        end
        t
+     end
+     def elapsed_time
+       @tasks.last.end_t - @tasks.first.start_t
+              
      end
   end
 end
