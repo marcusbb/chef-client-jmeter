@@ -127,6 +127,18 @@ module Load
      end
    
    end
+   #An example of usage is 
+   #Load::search("node","name:my_node*")
+   def self.search(index,reg_ex)
+     rest = Chef::REST.new(Chef::Config[:chef_server_url])
+     if reg_ex
+       results = rest.get_rest("/search/#{index}?q=#{reg_ex}&rows=10")
+     else
+       results = rest.get_rest("/search/#{index}?rows=10")
+     end
+     
+     results
+   end
    def self.clean_up(reg_ex)
      Load::log.warn "Clean Up Starting..."
      #`#{config[:knife_bin]} client bulk delete #{reg_ex} --yes`
