@@ -131,10 +131,11 @@ module Load
    #Load::search("node","name:my_node*")
    def self.search(index,reg_ex)
      rest = Chef::REST.new(Chef::Config[:chef_server_url])
+       
      if reg_ex
-       results = rest.get_rest("/search/#{index}?q=#{reg_ex}&rows=10")
+       results = rest.get_rest("/search/#{index}?q=#{reg_ex}")
      else
-       results = rest.get_rest("/search/#{index}?rows=10")
+       results = rest.get_rest("/search/#{index}")
      end
      
      results
